@@ -25,7 +25,7 @@ from kivy.utils import get_color_from_hex
 # ─── Constants ────────────────────────────────────────────────────────────────
 DATA_URL = (
     "https://raw.githubusercontent.com/sherlock-project/sherlock/"
-    "main/sherlock/resources/data.json"
+    "master/sherlock_project/resources/data.json"
 )
 LOCAL_DATA = "data.json"
 MAX_THREADS = 20          # Safe for Android (was 50)
@@ -47,26 +47,42 @@ def safe_get(url, headers, timeout):
         return None
 
 
+def get_local_data_path():
+    app_dir = os.path.dirname(os.path.abspath(__file__))
+    bundled = os.path.join(app_dir, "data.json")
+    if os.path.exists(bundled):
+        return bundled
+    return LOCAL_DATA
+
+
 def load_sites():
-    """Load site data from local cache or remote URL."""
-    if os.path.exists(LOCAL_DATA):
+    """Load site data from bundled file, local cache, or remote URL."""
+    local_path = get_local_data_path()
+    if os.path.exists(local_path):
         try:
-            with open(LOCAL_DATA, "r", encoding="utf-8") as f:
-                return json.load(f)
+            with open(local_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                if data:
+                    return data
         except Exception:
-            pass  # Corrupted cache — re-download
+            pass
 
     try:
-        result = safe_get(DATA_URL, {}, 15)
-        if result is None:
-            return {}
-        _, text = result
-        data = json.loads(text)
-        with open(LOCAL_DATA, "w", encoding="utf-8") as f:
-            json.dump(data, f)
-        return data
+        headers = {"User-Agent": "Mozilla/5.0"}
+        result = safe_get(DATA_URL, headers, 15)
+        if result is not None:
+            _, text = result
+            data = json.loads(text)
+            if data:
+                try:
+                    with open(LOCAL_DATA, "w", encoding="utf-8") as f:
+                        json.dump(data, f)
+                except Exception:
+                    pass
+                return data
     except Exception:
-        return {}
+        pass
+    return {}
 
 
 def check_username(site_name, site_data, username, results, lock):

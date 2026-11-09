@@ -1,0 +1,4 @@
+.buildozer/
+bin/
+downloaded_apk/
+*.log
