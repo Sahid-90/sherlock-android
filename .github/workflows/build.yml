@@ -13,13 +13,22 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Build with Buildozer Action
-        uses: ArtemSBulgakov/buildozer-action@v1
-        id: buildozer
-        with:
-          workdir: .
-          buildozer_version: stable
-          subcommand: android debug
+      - name: Prepare permissions
+        run: |
+          chmod -R a+rwX .
+
+      - name: Build APK with official Kivy Buildozer Docker
+        run: |
+          docker run --rm \
+            -v "$PWD":/home/user/hostcwd \
+            kivy/buildozer:latest \
+            android debug
+
+      - name: Fix output permissions
+        if: always()
+        run: |
+          sudo chmod -R a+r bin/ 2>/dev/null || true
+          ls -la bin/ 2>/dev/null || echo "No bin directory"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
