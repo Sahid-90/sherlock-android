@@ -10,64 +10,19 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-      # 1. Checkout repo
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. Set up Python
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
+      - name: Build with Buildozer Action
+        uses: ArtemSBulgakov/buildozer-action@v1
+        id: buildozer
         with:
-          python-version: "3.11"
+          workdir: .
+          buildozer_version: stable
+          subcommand: android debug
 
-      # 3. Install system dependencies needed by Buildozer
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y \
-            git zip unzip openjdk-17-jdk \
-            python3-pip autoconf libtool pkg-config \
-            zlib1g-dev libncurses5-dev libncursesw5-dev \
-            cmake libffi-dev libssl-dev \
-            ccache lld
-
-      # 4. Install Buildozer and Cython
-      - name: Install Buildozer
-        run: |
-          pip install --upgrade pip setuptools wheel
-          pip install buildozer cython
-
-      # 5. Set up Android SDK (accept licenses)
-      - name: Accept Android licenses
-        run: |
-          mkdir -p ~/.android
-          touch ~/.android/repositories.cfg
-
-      # 6. Cache Buildozer global directory to speed up future builds
-      - name: Cache Buildozer global dir
-        uses: actions/cache@v4
-        with:
-          path: ~/.buildozer
-          key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
-          restore-keys: |
-            ${{ runner.os }}-buildozer-
-
-      # 7. Build the APK (debug mode — no signing needed)
-      - name: Build APK
-        run: |
-          buildozer -v android debug
-        env:
-          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
-
-      # 8. Upload the APK as a downloadable artifact
-      - name: Upload APK artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: sherlock-android-apk
           path: bin/*.apk
-          retention-days: 30
-
-      # 9. Show APK info
-      - name: Show APK info
-        run: |
-          ls -lh bin/*.apk || echo "No APK found"
